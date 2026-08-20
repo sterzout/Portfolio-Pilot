@@ -169,7 +169,7 @@ function App() {
 
   return (
     <div style={{ padding: "40px", fontFamily: "sans-serif", maxWidth: "600px", margin: "auto" }}>
-      <h1>GitHub Repo Analyzer</h1>
+      <h1>Portfolio Pilot</h1>
 
       <form onSubmit={handleFetchData} style={{ display: "flex", flexDirection: "column", gap: "15px", marginBottom: "20px" }}>
         <div>
