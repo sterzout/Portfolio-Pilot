@@ -120,7 +120,7 @@ app.get("/analyses/:id", async (req: Request, res: Response) => {
     if (!id) {
       return res.status(400).json({ error: "Analysis id is required" });
     }
-    const analysis = await getAnalysis(id);
+    const analysis = await getAnalysis(id as string);
     if (!analysis) {
       return res.status(404).json({ error: "Analysis not found" });
     }
