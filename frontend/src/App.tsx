@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import './App.css';
 
-// matches what fetchRepoCommits returns from the backend
 interface Commit {
   message: string;
   date: string;
@@ -30,8 +30,21 @@ interface AnalysisResult {
   summary: string;
 }
 
-// ⚠️ Confirm this matches the exact path you registered in server.ts
-const RESUME_ANALYSIS_ENDPOINT = 'http://localhost:4000/resume-analysis';
+const RESUME_ANALYSIS_ENDPOINT = `${import.meta.env.VITE_API_URL}/resume-analysis`;
+
+function LoadingDots() {
+  return (
+    <div className="loading-row">
+      <div className="loading-bubble">
+        <div className="loading-dots">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const [owner, setOwner] = useState('');
@@ -69,7 +82,7 @@ function App() {
     setSaveMessage('');
 
     try {
-      const response = await fetch(`http://localhost:4000/repo-data?owner=${owner}&repo=${repo}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/repo-data?owner=${owner}&repo=${repo}`);
 
       if (!response.ok) {
         throw new Error('HTTP Error: data was not able to load');
@@ -91,7 +104,7 @@ function App() {
     setSaving(true);
     setSaveMessage('');
     try {
-      const response = await fetch('http://localhost:4000/analyses', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/analyses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -104,7 +117,7 @@ function App() {
         throw new Error('Failed to save analysis');
       }
 
-      setSaveMessage('Saved!');
+      setSaveMessage('Analysis saved successfully.');
     } catch (err: any) {
       setSaveMessage(err.message || 'Failed to save analysis.');
     } finally {
@@ -118,7 +131,7 @@ function App() {
       return;
     }
     if (!owner || !jobDescription) {
-      setResumeMessage('Please fill in owner/username and job description too.');
+      setResumeMessage('Please fill in GitHub username and job description.');
       return;
     }
 
@@ -129,7 +142,7 @@ function App() {
     try {
       const formData = new FormData();
       formData.append('resume', pdfFile);
-      formData.append('username', owner); // field name must match req.body.username on the backend
+      formData.append('username', owner);
       formData.append('jobDescription', jobDescription);
 
       const response = await fetch(RESUME_ANALYSIS_ENDPOINT, {
@@ -143,7 +156,7 @@ function App() {
 
       const data: AnalysisResult = await response.json();
       setAnalysisResult(data);
-      setResumeMessage(`Analysis complete for "${pdfFile.name}"`);
+      setResumeMessage('');
     } catch (err: any) {
       setResumeMessage(err.message || 'Failed to upload resume.');
     } finally {
@@ -154,7 +167,7 @@ function App() {
   const handleLoadHistory = async () => {
     setHistoryLoading(true);
     try {
-      const response = await fetch('http://localhost:4000/analyses');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/analyses`);
       if (!response.ok) {
         throw new Error('Failed to load history');
       }
@@ -167,181 +180,242 @@ function App() {
     }
   };
 
+  const hasRepoData = files.length > 0 || languages.length > 0 || commits.length > 0;
+
   return (
-    <div style={{ padding: "40px", fontFamily: "sans-serif", maxWidth: "600px", margin: "auto" }}>
-      <h1>Portfolio Pilot</h1>
+    <div className="app">
+      <header className="app-header">
+        <h1 style={{ color: "black" }}>Portfolio Pilot</h1>
+        <p style={{ color: "black" }}>Analyze GitHub repos, match your resume to job postings, and find skill gaps.</p>
+      </header>
 
-      <form onSubmit={handleFetchData} style={{ display: "flex", flexDirection: "column", gap: "15px", marginBottom: "20px" }}>
-        <div>
-          <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}>Owner / Username:</label>
-          <input
-            type="text"
-            value={owner}
-            onChange={(e) => setOwner(e.target.value)}
-            placeholder="e.g., facebook"
-            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-          />
-        </div>
+      <main className="app-main">
+        {error && <div className="error-banner">{error}</div>}
 
-        <div>
-          <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}>Repository Name:</label>
-          <input
-            type="text"
-            value={repo}
-            onChange={(e) => setRepo(e.target.value)}
-            placeholder="e.g., react"
-            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-          />
-        </div>
+        <section className="card">
+          <h2 className="card-title">Repository lookup</h2>
+          <form onSubmit={handleFetchData}>
+            <div className="field">
+              <label htmlFor="owner">GitHub owner / username</label>
+              <input
+                id="owner"
+                className="input"
+                type="text"
+                value={owner}
+                onChange={(e) => setOwner(e.target.value)}
+                placeholder="e.g. facebook"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="repo">Repository name</label>
+              <input
+                id="repo"
+                className="input"
+                type="text"
+                value={repo}
+                onChange={(e) => setRepo(e.target.value)}
+                placeholder="e.g. react"
+              />
+            </div>
+            <button type="submit" className="btn btn-primary btn-accent" disabled={loading}>
+              {loading ? 'Fetching…' : 'Fetch repository data'}
+            </button>
+          </form>
+          {loading && <LoadingDots />}
+        </section>
 
-        <button type="submit" style={{ padding: "10px", background: "#007bff", color: "white", border: "none", cursor: "pointer", fontWeight: "bold" }}>
-          {loading ? 'Fetching...' : 'Get Repo Files'}
-        </button>
-      </form>
+        <section className="card">
+          <h2 className="card-title">Resume & job analysis</h2>
+          <div className="field">
+            <label htmlFor="resume">Resume (PDF)</label>
+            <div className="file-input-wrap">
+              <input
+                id="resume"
+                type="file"
+                accept=".pdf"
+                onChange={(e) => {
+                  setPdfFile(e.target.files?.[0] ?? null);
+                  setResumeMessage('');
+                  setAnalysisResult(null);
+                }}
+              />
+              {pdfFile && <span className="file-name">{pdfFile.name}</span>}
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="job">Job description</label>
+            <textarea
+              id="job"
+              className="textarea"
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              placeholder="Paste the job description here…"
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary btn-accent"
+            onClick={handleUploadResume}
+            disabled={!pdfFile || fileLoading}
+          >
+            {fileLoading ? 'Analyzing…' : 'Analyze resume against job'}
+          </button>
 
-      <div style={{ marginBottom: "20px", padding: "15px", border: "1px solid #ddd", borderRadius: "5px", background: "#f8f9fa" }}>
-        <h2 style={{ marginTop: 0, fontSize: "1.1em" }}>Resume + Job Description Analysis</h2>
+          <div className="messages">
+            {jobDescription.trim() && pdfFile && !fileLoading && !analysisResult && (
+              <div className="message message-user">
+                <div className="bubble bubble-user">
+                  Analyze my resume for this role using my GitHub profile (@{owner || 'username'}).
+                </div>
+              </div>
+            )}
 
-        <input
-          type="file"
-          accept=".pdf"
-          onChange={(e) => {
-            setPdfFile(e.target.files?.[0] ?? null);
-            setResumeMessage('');
-          }}
-          style={{ marginBottom: "10px" }}
-        />
-        {pdfFile && (
-          <p style={{ margin: "0 0 10px", color: "#666", fontSize: "0.9em" }}>{pdfFile.name}</p>
+            {fileLoading && <LoadingDots />}
+
+            {resumeMessage && (
+              <div className="message message-assistant">
+                <div className="bubble bubble-assistant">{resumeMessage}</div>
+              </div>
+            )}
+
+            {analysisResult && (
+              <div className="message message-assistant">
+                <div className="bubble bubble-assistant">
+                  <h4>Summary</h4>
+                  <p>{analysisResult.summary}</p>
+
+                  <h4>Matched skills</h4>
+                  <div className="tags">
+                    {analysisResult.matchedSkills.map((skill, i) => (
+                      <span key={i} className="tag tag-match">{skill}</span>
+                    ))}
+                  </div>
+
+                  <h4>Missing skills</h4>
+                  <div className="tags">
+                    {analysisResult.missingSkills.map((skill, i) => (
+                      <span key={i} className="tag tag-missing">{skill}</span>
+                    ))}
+                  </div>
+
+                  <h4>Suggested project</h4>
+                  <p>
+                    <strong>{analysisResult.suggestedProject.title}</strong>
+                    <br />
+                    {analysisResult.suggestedProject.description}
+                  </p>
+                  {analysisResult.suggestedProject.skillsItCovers.length > 0 && (
+                    <div className="tags">
+                      {analysisResult.suggestedProject.skillsItCovers.map((skill, i) => (
+                        <span key={i} className="tag">{skill}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {hasRepoData && (
+          <section className="card">
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSaveAnalysis}
+                disabled={saving}
+              >
+                {saving ? 'Saving…' : 'Save analysis'}
+              </button>
+            </div>
+            {saving && <LoadingDots />}
+            {saveMessage && (
+              <div className={saveMessage.startsWith('Failed') ? 'error-banner' : 'success-banner'} style={{ marginTop: 12 }}>
+                {saveMessage}
+              </div>
+            )}
+          </section>
         )}
 
-        <textarea
-          value={jobDescription}
-          onChange={(e) => setJobDescription(e.target.value)}
-          placeholder="Paste the job description here..."
-          style={{ width: "100%", minHeight: "100px", padding: "8px", marginBottom: "10px", boxSizing: "border-box" }}
-        />
+        <div className="section-grid">
+          <div className="panel">
+            <div className="panel-header">Files</div>
+            {files.length > 0 ? (
+              <div className="panel-body">
+                <ul>
+                  {files.map((file, index) => (
+                    <li key={index}>{file}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="panel-empty">No files loaded yet.</div>
+            )}
+          </div>
 
-        <button
-          type="button"
-          onClick={handleUploadResume}
-          disabled={!pdfFile || fileLoading}
-          style={{ padding: "10px", background: "#17a2b8", color: "white", border: "none", cursor: pdfFile ? "pointer" : "not-allowed", fontWeight: "bold" }}
-        >
-          {fileLoading ? 'Analyzing...' : 'Analyze Resume Against Job'}
-        </button>
-        {resumeMessage && <p style={{ marginTop: "10px", marginBottom: 0 }}>{resumeMessage}</p>}
-      </div>
+          <div className="panel">
+            <div className="panel-header">Languages</div>
+            {languages.length > 0 ? (
+              <div className="panel-body">
+                <div className="tags">
+                  {languages.map((language, index) => (
+                    <span key={index} className="tag">{language}</span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="panel-empty">No languages loaded yet.</div>
+            )}
+          </div>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {files.length > 0 && (
-        <button
-          onClick={handleSaveAnalysis}
-          disabled={saving}
-          style={{ padding: "10px", background: "#28a745", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", marginBottom: "20px" }}
-        >
-          {saving ? 'Saving...' : 'Save Analysis'}
-        </button>
-      )}
-      {saveMessage && <p>{saveMessage}</p>}
-
-      <h2>Files:</h2>
-      {files.length > 0 ? (
-        <ul style={{ background: "#f8f9fa", padding: "20px", border: "1px solid #ddd", borderRadius: "5px", maxHeight: "300px", overflowY: "auto" }}>
-          {files.map((file, index) => (
-            <li key={index} style={{ padding: "4px 0" }}>{file}</li>
-          ))}
-        </ul>
-      ) : (
-        <p style={{ color: "#666" }}>No files loaded yet. Enter an owner and repository above.</p>
-      )}
-
-      <h2>Languages:</h2>
-      {languages.length > 0 ? (
-        <ul style={{ background: "#f8f9fa", padding: "20px", border: "1px solid #ddd", borderRadius: "5px", maxHeight: "300px", overflowY: "auto" }}>
-          {languages.map((language, index) => (
-            <li key={index} style={{ padding: "4px 0" }}>{language}</li>
-          ))}
-        </ul>
-      ) : (
-        <p style={{ color: "#666" }}>No languages detected or loaded yet. Enter an owner and repository above.</p>
-      )}
-
-      <h2>Commits:</h2>
-      {commits.length > 0 ? (
-        <ul style={{ background: "#f8f9fa", padding: "20px", border: "1px solid #ddd", borderRadius: "5px", maxHeight: "300px", overflowY: "auto" }}>
-          {commits.map((commit, index) => (
-            <li key={index} style={{ padding: "4px 0" }}>
-              <strong>{commit.message}</strong> — {new Date(commit.date).toLocaleDateString()}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p style={{ color: "#666" }}>No commits found or loaded yet. Enter an owner and repository above.</p>
-      )}
-
-      <hr style={{ margin: "30px 0" }} />
-
-      <h2>History</h2>
-      <button
-        onClick={handleLoadHistory}
-        disabled={historyLoading}
-        style={{ padding: "10px", background: "#6c757d", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", marginBottom: "15px" }}
-      >
-        {historyLoading ? 'Loading...' : 'Load Saved Analyses'}
-      </button>
-
-      {history.length > 0 && (
-        <ul style={{ background: "#f8f9fa", padding: "20px", border: "1px solid #ddd", borderRadius: "5px" }}>
-          {history.map((item) => (
-            <li key={item.id} style={{ padding: "8px 0", borderBottom: "1px solid #ddd" }}>
-              <strong>{item.repo_url}</strong> — {new Date(item.analyzed_at).toLocaleString()}
-              <br />
-              <span style={{ color: "#666", fontSize: "0.9em" }}>
-                {item.result.files.length} files, {item.result.languages.length} languages, {item.result.commits.length} commits
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {analysisResult && (
-        <div style={{
-          position: "fixed",
-          top: "40px",
-          right: "40px",
-          width: "320px",
-          maxHeight: "80vh",
-          overflowY: "auto",
-          background: "#ffffff",
-          border: "1px solid #ddd",
-          borderRadius: "8px",
-          padding: "20px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
-        }}>
-          <h2 style={{ marginTop: 0 }}>Gap Analysis</h2>
-
-          <h3 style={{ fontSize: "0.95em", marginBottom: "4px" }}>Summary</h3>
-          <p style={{ fontSize: "0.9em", color: "#333" }}>{analysisResult.summary}</p>
-
-          <h3 style={{ fontSize: "0.95em", marginBottom: "4px" }}>✅ Matched Skills</h3>
-          <ul style={{ fontSize: "0.85em", paddingLeft: "20px" }}>
-            {analysisResult.matchedSkills.map((skill, i) => <li key={i}>{skill}</li>)}
-          </ul>
-
-          <h3 style={{ fontSize: "0.95em", marginBottom: "4px" }}>❌ Missing Skills</h3>
-          <ul style={{ fontSize: "0.85em", paddingLeft: "20px" }}>
-            {analysisResult.missingSkills.map((skill, i) => <li key={i}>{skill}</li>)}
-          </ul>
-
-          <h3 style={{ fontSize: "0.95em", marginBottom: "4px" }}>💡 Suggested Project</h3>
-          <p style={{ fontSize: "0.85em" }}>
-            <strong>{analysisResult.suggestedProject.title}</strong><br />
-            {analysisResult.suggestedProject.description}
-          </p>
+          <div className="panel">
+            <div className="panel-header">Recent commits</div>
+            {commits.length > 0 ? (
+              <div className="panel-body">
+                <ul>
+                  {commits.map((commit, index) => (
+                    <li key={index}>
+                      <span className="commit-msg">{commit.message}</span>
+                      <br />
+                      <span className="commit-date">{new Date(commit.date).toLocaleDateString()}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="panel-empty">No commits loaded yet.</div>
+            )}
+          </div>
         </div>
-      )}
+
+        <section className="card">
+          <h2 className="card-title">Saved analyses</h2>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleLoadHistory}
+            disabled={historyLoading}
+          >
+            {historyLoading ? 'Loading…' : 'Load history'}
+          </button>
+          {historyLoading && <LoadingDots />}
+          {history.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              {history.map((item) => (
+                <div key={item.id} className="history-item">
+                  <strong>{item.repo_url}</strong>
+                  <div className="history-meta">
+                    {new Date(item.analyzed_at).toLocaleString()} ·{' '}
+                    {item.result.files.length} files, {item.result.languages.length} languages,{' '}
+                    {item.result.commits.length} commits
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
