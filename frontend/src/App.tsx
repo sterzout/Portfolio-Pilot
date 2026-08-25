@@ -30,7 +30,8 @@ interface AnalysisResult {
   summary: string;
 }
 
-const RESUME_ANALYSIS_ENDPOINT = `${import.meta.env.VITE_API_URL}/resume-analysis`;
+const API_URL = import.meta.env.VITE_API_URL;
+const RESUME_ANALYSIS_ENDPOINT = `${API_URL}/resume-analysis`;
 
 function LoadingDots() {
   return (
@@ -82,7 +83,7 @@ function App() {
     setSaveMessage('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/repo-data?owner=${owner}&repo=${repo}`);
+      const response = await fetch(`${API_URL}/repo-data?owner=${owner}&repo=${repo}`);
 
       if (!response.ok) {
         throw new Error('HTTP Error: data was not able to load');
@@ -104,7 +105,7 @@ function App() {
     setSaving(true);
     setSaveMessage('');
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/analyses`, {
+      const response = await fetch(`${API_URL}/analyses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -167,7 +168,7 @@ function App() {
   const handleLoadHistory = async () => {
     setHistoryLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/analyses`);
+      const response = await fetch(`${API_URL}/analyses`);
       if (!response.ok) {
         throw new Error('Failed to load history');
       }
@@ -184,15 +185,22 @@ function App() {
 
   return (
     <div className="app">
+      <div className="app-bg" aria-hidden="true" />
+
       <header className="app-header">
-        <h1 style={{ color: "black" }}>Portfolio Pilot</h1>
-        <p style={{ color: "black" }}>Analyze GitHub repos, match your resume to job postings, and find skill gaps.</p>
+        <div className="app-header-inner">
+          <div className="app-logo">P</div>
+          <div>
+            <h1>Portfolio Pilot</h1>
+            <p>Analyze GitHub repos, match your resume to job postings, and find skill gaps.</p>
+          </div>
+        </div>
       </header>
 
       <main className="app-main">
         {error && <div className="error-banner">{error}</div>}
 
-        <section className="card">
+        <section className="card" style={{ '--delay': '80ms' } as React.CSSProperties}>
           <h2 className="card-title">Repository lookup</h2>
           <form onSubmit={handleFetchData}>
             <div className="field">
@@ -217,18 +225,22 @@ function App() {
                 placeholder="e.g. react"
               />
             </div>
-            <button type="submit" className="btn btn-primary btn-accent" disabled={loading}>
+            <button
+              type="submit"
+              className={`btn btn-primary btn-accent${loading ? ' btn-loading' : ''}`}
+              disabled={loading}
+            >
               {loading ? 'Fetching…' : 'Fetch repository data'}
             </button>
           </form>
           {loading && <LoadingDots />}
         </section>
 
-        <section className="card">
+        <section className="card" style={{ '--delay': '160ms' } as React.CSSProperties}>
           <h2 className="card-title">Resume & job analysis</h2>
           <div className="field">
             <label htmlFor="resume">Resume (PDF)</label>
-            <div className="file-input-wrap">
+            <label className={`file-drop${pdfFile ? ' has-file' : ''}`} htmlFor="resume">
               <input
                 id="resume"
                 type="file"
@@ -239,8 +251,12 @@ function App() {
                   setAnalysisResult(null);
                 }}
               />
-              {pdfFile && <span className="file-name">{pdfFile.name}</span>}
-            </div>
+              <span className="file-drop-icon">{pdfFile ? '✓' : '↑'}</span>
+              <span className="file-drop-label">
+                {pdfFile ? pdfFile.name : 'Drop your resume or click to browse'}
+              </span>
+              {!pdfFile && <span className="file-drop-hint">PDF only</span>}
+            </label>
           </div>
           <div className="field">
             <label htmlFor="job">Job description</label>
@@ -254,7 +270,7 @@ function App() {
           </div>
           <button
             type="button"
-            className="btn btn-primary btn-accent"
+            className={`btn btn-primary btn-accent${fileLoading ? ' btn-loading' : ''}`}
             onClick={handleUploadResume}
             disabled={!pdfFile || fileLoading}
           >
@@ -287,14 +303,26 @@ function App() {
                   <h4>Matched skills</h4>
                   <div className="tags">
                     {analysisResult.matchedSkills.map((skill, i) => (
-                      <span key={i} className="tag tag-match">{skill}</span>
+                      <span
+                        key={i}
+                        className="tag tag-match"
+                        style={{ '--tag-delay': `${i * 40}ms` } as React.CSSProperties}
+                      >
+                        {skill}
+                      </span>
                     ))}
                   </div>
 
                   <h4>Missing skills</h4>
                   <div className="tags">
                     {analysisResult.missingSkills.map((skill, i) => (
-                      <span key={i} className="tag tag-missing">{skill}</span>
+                      <span
+                        key={i}
+                        className="tag tag-missing"
+                        style={{ '--tag-delay': `${i * 40}ms` } as React.CSSProperties}
+                      >
+                        {skill}
+                      </span>
                     ))}
                   </div>
 
@@ -307,7 +335,13 @@ function App() {
                   {analysisResult.suggestedProject.skillsItCovers.length > 0 && (
                     <div className="tags">
                       {analysisResult.suggestedProject.skillsItCovers.map((skill, i) => (
-                        <span key={i} className="tag">{skill}</span>
+                        <span
+                          key={i}
+                          className="tag"
+                          style={{ '--tag-delay': `${i * 40}ms` } as React.CSSProperties}
+                        >
+                          {skill}
+                        </span>
                       ))}
                     </div>
                   )}
@@ -318,34 +352,59 @@ function App() {
         </section>
 
         {hasRepoData && (
-          <section className="card">
-            <div className="form-actions">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleSaveAnalysis}
-                disabled={saving}
-              >
-                {saving ? 'Saving…' : 'Save analysis'}
-              </button>
-            </div>
-            {saving && <LoadingDots />}
-            {saveMessage && (
-              <div className={saveMessage.startsWith('Failed') ? 'error-banner' : 'success-banner'} style={{ marginTop: 12 }}>
-                {saveMessage}
+          <>
+            <div className="stats-row">
+              <div className="stat-card">
+                <div className="stat-value">{files.length}</div>
+                <div className="stat-label">Files</div>
               </div>
-            )}
-          </section>
+              <div className="stat-card">
+                <div className="stat-value">{languages.length}</div>
+                <div className="stat-label">Languages</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{commits.length}</div>
+                <div className="stat-label">Commits</div>
+              </div>
+            </div>
+
+            <section className="card" style={{ '--delay': '240ms' } as React.CSSProperties}>
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className={`btn btn-primary${saving ? ' btn-loading' : ''}`}
+                  onClick={handleSaveAnalysis}
+                  disabled={saving}
+                >
+                  {saving ? 'Saving…' : 'Save analysis'}
+                </button>
+              </div>
+              {saving && <LoadingDots />}
+              {saveMessage && (
+                <div
+                  className={saveMessage.startsWith('Failed') ? 'error-banner' : 'success-banner'}
+                  style={{ marginTop: 12 }}
+                >
+                  {saveMessage}
+                </div>
+              )}
+            </section>
+          </>
         )}
 
         <div className="section-grid">
-          <div className="panel">
+          <div className="panel" style={{ '--delay': '320ms' } as React.CSSProperties}>
             <div className="panel-header">Files</div>
             {files.length > 0 ? (
               <div className="panel-body">
                 <ul>
                   {files.map((file, index) => (
-                    <li key={index}>{file}</li>
+                    <li
+                      key={index}
+                      style={{ '--item-delay': `${index * 30}ms` } as React.CSSProperties}
+                    >
+                      {file}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -354,13 +413,19 @@ function App() {
             )}
           </div>
 
-          <div className="panel">
+          <div className="panel" style={{ '--delay': '400ms' } as React.CSSProperties}>
             <div className="panel-header">Languages</div>
             {languages.length > 0 ? (
               <div className="panel-body">
                 <div className="tags">
                   {languages.map((language, index) => (
-                    <span key={index} className="tag">{language}</span>
+                    <span
+                      key={index}
+                      className="tag"
+                      style={{ '--tag-delay': `${index * 35}ms` } as React.CSSProperties}
+                    >
+                      {language}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -369,15 +434,17 @@ function App() {
             )}
           </div>
 
-          <div className="panel">
+          <div className="panel" style={{ '--delay': '480ms' } as React.CSSProperties}>
             <div className="panel-header">Recent commits</div>
             {commits.length > 0 ? (
               <div className="panel-body">
                 <ul>
                   {commits.map((commit, index) => (
-                    <li key={index}>
+                    <li
+                      key={index}
+                      style={{ '--item-delay': `${index * 30}ms` } as React.CSSProperties}
+                    >
                       <span className="commit-msg">{commit.message}</span>
-                      <br />
                       <span className="commit-date">{new Date(commit.date).toLocaleDateString()}</span>
                     </li>
                   ))}
@@ -389,11 +456,11 @@ function App() {
           </div>
         </div>
 
-        <section className="card">
+        <section className="card" style={{ '--delay': '560ms' } as React.CSSProperties}>
           <h2 className="card-title">Saved analyses</h2>
           <button
             type="button"
-            className="btn btn-secondary"
+            className={`btn btn-secondary${historyLoading ? ' btn-loading' : ''}`}
             onClick={handleLoadHistory}
             disabled={historyLoading}
           >
@@ -401,9 +468,13 @@ function App() {
           </button>
           {historyLoading && <LoadingDots />}
           {history.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              {history.map((item) => (
-                <div key={item.id} className="history-item">
+            <div className="history-list">
+              {history.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="history-item"
+                  style={{ '--item-delay': `${index * 50}ms` } as React.CSSProperties}
+                >
                   <strong>{item.repo_url}</strong>
                   <div className="history-meta">
                     {new Date(item.analyzed_at).toLocaleString()} ·{' '}
