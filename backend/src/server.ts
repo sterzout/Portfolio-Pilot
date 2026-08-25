@@ -5,7 +5,6 @@ import { fetchRepoFiles, fetchRepoLanguages, fetchRepoCommits, fetchRepoSummary,
 import { createAnalysis, getAnalysis, listAnalyses } from "./db/queries.js";
 import multer from "multer";
 import { extractResumeText } from "./services/resume.js";
-import { analyzeGaps } from "./services/gemini.js";
 const app = express();
 
 const upload = multer();
