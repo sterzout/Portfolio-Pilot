@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import FileList from './components/FileList';
+import LanguagesList from './components/LanguagesList';
+import RecentCommits from './components/RecentCommits';
 import './App.css';
 
 interface Commit {
@@ -397,16 +400,7 @@ function App() {
             <div className="panel-header">Files</div>
             {files.length > 0 ? (
               <div className="panel-body">
-                <ul>
-                  {files.map((file, index) => (
-                    <li
-                      key={index}
-                      style={{ '--item-delay': `${index * 30}ms` } as React.CSSProperties}
-                    >
-                      {file}
-                    </li>
-                  ))}
-                </ul>
+                <FileList files={files} />
               </div>
             ) : (
               <div className="panel-empty">No files loaded yet.</div>
@@ -418,15 +412,7 @@ function App() {
             {languages.length > 0 ? (
               <div className="panel-body">
                 <div className="tags">
-                  {languages.map((language, index) => (
-                    <span
-                      key={index}
-                      className="tag"
-                      style={{ '--tag-delay': `${index * 35}ms` } as React.CSSProperties}
-                    >
-                      {language}
-                    </span>
-                  ))}
+                  <LanguagesList languages={languages} />
                 </div>
               </div>
             ) : (
@@ -438,17 +424,7 @@ function App() {
             <div className="panel-header">Recent commits</div>
             {commits.length > 0 ? (
               <div className="panel-body">
-                <ul>
-                  {commits.map((commit, index) => (
-                    <li
-                      key={index}
-                      style={{ '--item-delay': `${index * 30}ms` } as React.CSSProperties}
-                    >
-                      <span className="commit-msg">{commit.message}</span>
-                      <span className="commit-date">{new Date(commit.date).toLocaleDateString()}</span>
-                    </li>
-                  ))}
-                </ul>
+                <RecentCommits commits={commits} />
               </div>
             ) : (
               <div className="panel-empty">No commits loaded yet.</div>
