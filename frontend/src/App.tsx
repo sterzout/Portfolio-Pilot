@@ -195,7 +195,7 @@ function App() {
           <div className="app-logo">P</div>
           <div>
             <h1>Portfolio Pilot</h1>
-            <p>Analyze GitHub repos, match your resume to job postings, and find skill gaps.</p>
+            <p>Analyze GitHub repos, match your resume to job postings, and find skill gaps to build your portfolio.</p>
           </div>
         </div>
       </header>
