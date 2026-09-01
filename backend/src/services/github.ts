@@ -113,8 +113,12 @@ export async function fetchUserProfile(username: string) {
 }
 
 export async function fetchUserProfileAnalysis(username: string, resumeBuffer: Buffer, jobDescription: string) {
-  const githubProfile = await fetchUserProfile(username);
   const resumeText = await extractResumeText(resumeBuffer);
-  const analysis = await analyzeGaps(resumeText, githubProfile, jobDescription);
-  return analysis;
+
+  if (username === "") {
+    return await analyzeGaps(resumeText, { repoCount: 0, languages: [], topics: [], repos: [] }, jobDescription);
+  } else {
+    const githubProfile = await fetchUserProfile(username);
+    return await analyzeGaps(resumeText, githubProfile, jobDescription);
+  }
 }

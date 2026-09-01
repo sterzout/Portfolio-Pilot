@@ -3,6 +3,7 @@ import cors from "cors";
 import type { Request, Response } from "express";
 import { fetchRepoFiles, fetchRepoLanguages, fetchRepoCommits, fetchRepoSummary, fetchUserProfile, fetchUserProfileAnalysis } from "./services/github.js";
 import { createAnalysis, getAnalysis, listAnalyses } from "./db/queries.js";
+import { answerFollowUp } from "./services/gemini.js";
 import multer from "multer";
 import { extractResumeText } from "./services/resume.js";
 const app = express();
@@ -154,16 +155,33 @@ app.post("/resume-analysis", upload.single("resume"), async (req: Request, res: 
   if (!resumeFile) {
     return res.status(400).json({ error: "No resume file uploaded (expected field name: 'resume')" });
   }
-  if (!username || !jobDescription) {
-    return res.status(400).json({ error: "username and jobDescription are required" });
+  if (!jobDescription) {
+    return res.status(400).json({ error: "jobDescription is required" });
   }
 
   try {
-    const analysis = await fetchUserProfileAnalysis(username, resumeFile.buffer, jobDescription);
+    const analysis = await fetchUserProfileAnalysis(username ? username : "", resumeFile.buffer, jobDescription);
     return res.json(analysis);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to fetch user profile analysis" });
+  }
+});
+
+app.post("/chat", async (req: Request, res: Response) => {
+  try {
+    const { message, context } = req.body;
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({ error: "message is required" });
+    }
+    if (!context || !context.type) {
+      return res.status(400).json({ error: "context with type is required" });
+    }
+    const reply = await answerFollowUp(message, context);
+    return res.json({ reply });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to generate reply" });
   }
 });
 
