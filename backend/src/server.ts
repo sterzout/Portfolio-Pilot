@@ -147,23 +147,28 @@ app.get("/user-profile", async (req: Request, res: Response) => {
 });
 
 
+let analysisAttempts = 0;
+let analysisSuccesses = 0;
+
 app.post("/resume-analysis", upload.single("resume"), async (req: Request, res: Response) => {
   const username = req.body.username as string;
   const jobDescription = req.body.jobDescription as string;
   const resumeFile = req.file;
 
-  if (!resumeFile) {
-    return res.status(400).json({ error: "No resume file uploaded (expected field name: 'resume')" });
-  }
-  if (!jobDescription) {
-    return res.status(400).json({ error: "jobDescription is required" });
+  if (!resumeFile || !jobDescription) {
+    return res.status(400).json({ error: "resumeFile and jobDescription are required" });
   }
 
+  analysisAttempts++;
+
   try {
-    const analysis = await fetchUserProfileAnalysis(username ? username : "", resumeFile.buffer, jobDescription);
+    const analysis = await fetchUserProfileAnalysis(username || "", resumeFile.buffer, jobDescription);
+    analysisSuccesses++;
+    console.log(`[analysis reliability] ${analysisSuccesses}/${analysisAttempts} succeeded (${((analysisSuccesses / analysisAttempts) * 100).toFixed(1)}%)`);
     return res.json(analysis);
   } catch (err) {
     console.error(err);
+    console.log(`[analysis reliability] ${analysisSuccesses}/${analysisAttempts} succeeded (${((analysisSuccesses / analysisAttempts) * 100).toFixed(1)}%)`);
     return res.status(500).json({ error: "Failed to fetch user profile analysis" });
   }
 });

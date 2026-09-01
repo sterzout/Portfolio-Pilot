@@ -56,11 +56,15 @@ export async function fetchRepoLanguages(owner: string, repo: string) {
   }
 
   export async function fetchRepoSummary(owner: string, repo: string) {
-    const files = await fetchRepoFiles(owner, repo);
-    const languages = await fetchRepoLanguages(owner, repo);
-    const commits = await fetchRepoCommits(owner, repo);
+    const start = Date.now();
+    const [files, languages, commits] = await Promise.all([
+    fetchRepoFiles(owner, repo),
+    fetchRepoLanguages(owner, repo),
+    fetchRepoCommits(owner, repo),
+    ]);
+    console.log(`Repo summary fetched in ${Date.now() - start}ms`);
     return { files, languages, commits };
-}
+  }
 
 //user info fetching
 
@@ -114,7 +118,6 @@ export async function fetchUserProfile(username: string) {
 
 export async function fetchUserProfileAnalysis(username: string, resumeBuffer: Buffer, jobDescription: string) {
   const resumeText = await extractResumeText(resumeBuffer);
-
   if (username === "") {
     return await analyzeGaps(resumeText, { repoCount: 0, languages: [], topics: [], repos: [] }, jobDescription);
   } else {
