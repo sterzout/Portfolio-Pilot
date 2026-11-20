@@ -31,6 +31,16 @@ export async function listAnalyses() {
     return queryResult.rows;
   } catch (err) {
     console.error("listAnalyses failed:", err);
-    throw new Error("Failed to fetch analyses");
+    throw new Error("Failed to fetch analyses" + err);
+  }
+}
+export async function deleteSession(id: string) {
+  const sql = `DELETE FROM sessions WHERE id = $1`;
+  try {
+    const queryResult = await pool.query(sql,);
+    return (queryResult.rowCount ?? 0) > 0;
+  } catch (err) {
+    console.error("deleteSession failed:", err);
+    throw new Error("Failed to delete session");
   }
 }

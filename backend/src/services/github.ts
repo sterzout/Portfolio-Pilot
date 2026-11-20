@@ -12,7 +12,7 @@ export async function fetchRepoFiles(owner: string, repo: string) {
   });
   
   if (!res.ok) {
-    throw new Error(`GitHub API error: ${res.status} ${res.statusText}`);
+    throw new Error(`GitHub API error/Renew Token: ${res.status} ${res.statusText}`);
   }
   
   const data = await res.json();
@@ -120,8 +120,11 @@ export async function fetchUserProfileAnalysis(username: string, resumeBuffer: B
   const resumeText = await extractResumeText(resumeBuffer);
   if (username === "") {
     return await analyzeGaps(resumeText, { repoCount: 0, languages: [], topics: [], repos: [] }, jobDescription);
+
   } else {
     const githubProfile = await fetchUserProfile(username);
     return await analyzeGaps(resumeText, githubProfile, jobDescription);
+
   }
+
 }

@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import type { Request, Response } from "express";
 import { fetchRepoFiles, fetchRepoLanguages, fetchRepoCommits, fetchRepoSummary, fetchUserProfile, fetchUserProfileAnalysis } from "./services/github.js";
-import { createAnalysis, getAnalysis, listAnalyses } from "./db/queries.js";
+import { createAnalysis, getAnalysis, listAnalyses, deleteSession } from "./db/queries.js";
 import { answerFollowUp } from "./services/gemini.js";
 import multer from "multer";
 import { extractResumeText } from "./services/resume.js";
@@ -71,7 +71,8 @@ app.post("/parse-resume", upload.single("resume"), async (req: Request, res: Res
     if (!req.file) {
       return res.status(400).json({ error: "No resume file uploaded" });
     }
-    const text = await extractResumeText(req.file.buffer);
+    const buffer = req.file.buffer;
+    const text = await extractResumeText(buffer);
     return res.json({ text });
   } catch (err) {
     console.error(err);
@@ -116,10 +117,10 @@ app.get("/analyses", async (_req: Request, res: Response) => {
 
 app.get("/analyses/:id", async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;           // ✅ just the string
+    const id = req.params.id;
     if (!id) {
       return res.status(400).json({ error: "Analysis id is required" });
-    }
+    } 
     const analysis = await getAnalysis(id as string);
     if (!analysis) {
       return res.status(404).json({ error: "Analysis not found" });
@@ -130,7 +131,23 @@ app.get("/analyses/:id", async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Failed to fetch analysis" });
   }
 });
-
+app.delete("/analyses/:id", async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    if (!id) {
+      return res.status(400).json({ error: "Session id is required" });
+    } 
+    const session = await deleteSession(id as string);
+    if (session === undefined || session === null) {
+      return res.status(404).json({ error: "Session not found" });
+    } else {
+      return res.status(200).json({ message: "Session deleted successfully" });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to delete session" });
+  } 
+});
 
 //user info based on repos and github
 
@@ -153,7 +170,7 @@ let analysisSuccesses = 0;
 app.post("/resume-analysis", upload.single("resume"), async (req: Request, res: Response) => {
   const username = req.body.username as string;
   const jobDescription = req.body.jobDescription as string;
-  const resumeFile = req.file;
+  const resumeFile = req.file as Express.Multer.File;
 
   if (!resumeFile || !jobDescription) {
     return res.status(400).json({ error: "resumeFile and jobDescription are required" });

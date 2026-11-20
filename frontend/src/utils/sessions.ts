@@ -24,6 +24,12 @@ export function createSessionId() {
 export function createMessageId() {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+// export function deleteSession(id: string) {
+//   const sessions = loadLocalSessions();
+//   const filteredSessions = sessions.filter((session) => session.id !== id);
+//   saveLocalSessions(filteredSessions);
+//   return filteredSessions;
+// }
 
 function defaultRepoMessage(repoUrl: string, result: AnalysisSession['repoData']) {
   return {

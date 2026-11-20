@@ -1,4 +1,5 @@
 import type { AnalysisSession } from '../types/analysis';
+// import { deleteSession } from '../utils/sessions';
 
 interface AnalysisSidebarProps {
   sessions: AnalysisSession[];
@@ -64,6 +65,10 @@ export default function AnalysisSidebar({
                 {session.type === 'resume' ? 'Resume analysis' : 'Repository'} · {formatRelativeTime(session.createdAt)}
               </span>
             </span>
+              {/* <button 
+              onClick={() => deleteSession(session.id ?? '')}
+              type="button"
+              className="sidebar-item-delete-button">X</button> */}
           </button>
         ))}
       </div>

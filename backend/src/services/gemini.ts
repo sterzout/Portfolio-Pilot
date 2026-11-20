@@ -11,7 +11,8 @@ interface GithubProfile {
   repoCount: number;
   languages: string[];
   topics: string[];
-  repos: { name: string; description: string | null; language: string | null }[];
+  repos: {
+     name: string; description: string | null; language: string | null }[];
 }
 
 export interface SkillGapAnalysis {
