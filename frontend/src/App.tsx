@@ -164,7 +164,7 @@ function App() {
     setSaveMessage('');
 
     try {
-      const response = await fetch(`${API_URL}/repo-data?owner=${owner}&repo=${repo}`);
+      const response = await fetch(`{${API_URL}/repo-data?owner=${owner}&repo=${repo}`);
       if (!response.ok) throw new Error('HTTP Error: data was not able to load');
 
       const data: RepoData = await response.json();
@@ -372,8 +372,15 @@ function App() {
   };
 
   const hasRepoData = files.length > 0 || languages.length > 0 || commits.length > 0;
-
-  return (
+  const name = "Salim Terzout";
+  const currentDate = new Date();
+  const year = currentDate.getFullYear();
+  return (  
+    <>
+      <div>
+        <p>Created by {name}</p>
+        <p>Copyright {year}</p>
+      </div>
     <div className="app">
       <div className="app-bg" aria-hidden="true" />
 
@@ -604,6 +611,7 @@ function App() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
